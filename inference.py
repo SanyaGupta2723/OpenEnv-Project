@@ -14,8 +14,7 @@ if not API_KEY:
     raise ValueError("GEMINI_API_KEY not found. Check your .env file")
 
 # 🌐 Gemini API URL
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
-# 🧠 Initialize environment
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
 env = ResumeEnv()
 
 print("[START]")
@@ -41,7 +40,6 @@ Strictly return ONLY valid JSON (no extra text):
 }}
 """
 
-# 📦 Payload
 payload = {
     "contents": [
         {
@@ -50,15 +48,12 @@ payload = {
     ]
 }
 
-# 🚀 API Call
-response = requests.post(url, json=payload)
+headers = {
+    "Content-Type": "application/json"
+}
 
-# 🔍 Debug full response
-try:
-    result = response.json()
-except:
-    print("API Response Error:", response.text)
-    result = {}
+response = requests.post(url, headers=headers, json=payload)
+result = response.json()
 
 print("FULL API RESPONSE:", result)
 
