@@ -1,11 +1,13 @@
 import os
-from openai import OpenAI
+import requests
+from dotenv import load_dotenv
 from env.environment import ResumeEnv
 
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("API_BASE_URL")
-)
+load_dotenv()
+
+API_KEY = os.getenv("AIzaSyBf14w9-7E3DdEiNyfirDITArSWgPZMEyo")
+
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
 
 env = ResumeEnv()
 
@@ -31,14 +33,24 @@ Return JSON:
 }}
 """
 
-response = client.chat.completions.create(
-    model=os.getenv("MODEL_NAME"),
-    messages=[{"role": "user", "content": prompt}]
-)
+payload = {
+    "contents": [
+        {
+            "parts": [{"text": prompt}]
+        }
+    ]
+}
 
-output_text = response.choices[0].message.content
+response = requests.post(url, json=payload)
+result = response.json()
 
-# ⚠️ simple fallback parsing
+# Gemini output extract (simple)
+try:
+    output_text = result["candidates"][0]["content"]["parts"][0]["text"]
+except:
+    output_text = ""
+
+# fallback action (safe)
 action = {
     "decision": "shortlist",
     "score": 0.8,
