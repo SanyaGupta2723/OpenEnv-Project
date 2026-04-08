@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 from dotenv import load_dotenv
 from env.environment import ResumeEnv
 
@@ -25,10 +26,10 @@ You are an HR AI.
 Job: {obs.job_description}
 Resume: {obs.resume}
 
-Return JSON:
+Strictly return ONLY valid JSON:
 {{
   "decision": "shortlist or reject",
-  "score": float between 0 and 1,
+  "score": 0 to 1,
   "reason": "short explanation"
 }}
 """
@@ -44,19 +45,36 @@ payload = {
 response = requests.post(url, json=payload)
 result = response.json()
 
-# Gemini output extract (simple)
+# 🧠 Extract text
 try:
     output_text = result["candidates"][0]["content"]["parts"][0]["text"]
 except:
     output_text = ""
 
-# fallback action (safe)
-action = {
-    "decision": "shortlist",
-    "score": 0.8,
-    "reason": "Candidate matches job requirements"
-}
+print("AI RAW OUTPUT:", output_text)
 
+# 🔥 JSON PARSING
+try:
+    # clean text (remove ```json if present)
+    cleaned = output_text.replace("```json", "").replace("```", "").strip()
+    parsed = json.loads(cleaned)
+
+    action = {
+        "decision": parsed.get("decision", "reject"),
+        "score": float(parsed.get("score", 0)),
+        "reason": parsed.get("reason", "")
+    }
+
+except Exception as e:
+    print("Parsing failed, using fallback:", e)
+
+    action = {
+        "decision": "reject",
+        "score": 0.5,
+        "reason": "Parsing failed fallback"
+    }
+
+# ✅ STEP with REAL action
 obs, reward, done, _ = env.step(action)
 
 print("[END]")
