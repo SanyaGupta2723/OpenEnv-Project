@@ -4,12 +4,18 @@ import json
 from dotenv import load_dotenv
 from env.environment import ResumeEnv
 
+# 🔑 Load env variables
 load_dotenv()
 
-API_KEY = os.getenv("AIzaSyBf14w9-7E3DdEiNyfirDITArSWgPZMEyo")
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# ❗ Check if API key loaded
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY not found. Check your .env file")
 
+# 🌐 Gemini API URL
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+# 🧠 Initialize environment
 env = ResumeEnv()
 
 print("[START]")
@@ -20,13 +26,14 @@ print("[STEP]")
 print("Job:", obs.job_description)
 print("Resume:", obs.resume)
 
+# 🧾 Prompt
 prompt = f"""
 You are an HR AI.
 
 Job: {obs.job_description}
 Resume: {obs.resume}
 
-Strictly return ONLY valid JSON:
+Strictly return ONLY valid JSON (no extra text):
 {{
   "decision": "shortlist or reject",
   "score": 0 to 1,
@@ -34,6 +41,7 @@ Strictly return ONLY valid JSON:
 }}
 """
 
+# 📦 Payload
 payload = {
     "contents": [
         {
@@ -42,20 +50,25 @@ payload = {
     ]
 }
 
+# 🚀 API Call
 response = requests.post(url, json=payload)
-result = response.json()
 
-# 🧠 Extract text
+# 🔍 Debug full response
 try:
-    output_text = result["candidates"][0]["content"]["parts"][0]["text"]
+    result = response.json()
 except:
-    output_text = ""
+    print("API Response Error:", response.text)
+    result = {}
+
+print("FULL API RESPONSE:", result)
+
+# 🧠 Extract AI text safely
+output_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
 
 print("AI RAW OUTPUT:", output_text)
 
-# 🔥 JSON PARSING
+# 🔥 JSON Parsing
 try:
-    # clean text (remove ```json if present)
     cleaned = output_text.replace("```json", "").replace("```", "").strip()
     parsed = json.loads(cleaned)
 
@@ -71,10 +84,10 @@ except Exception as e:
     action = {
         "decision": "reject",
         "score": 0.5,
-        "reason": "Parsing failed fallback"
+        "reason": "Fallback due to parsing error"
     }
 
-# ✅ STEP with REAL action
+# ✅ Environment step
 obs, reward, done, _ = env.step(action)
 
 print("[END]")
