@@ -1,0 +1,15 @@
+name: resume-screening-env
+description: AI-based resume screening and ranking environment
+
+observation_space:
+  job_description: string
+  resume: string
+
+action_space:
+  decision: string
+  score: float
+  reason: string
+
+reward:
+  type: float
+  range: [0.0, 1.0]
