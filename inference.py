@@ -7,11 +7,11 @@ from env.environment import ResumeEnv
 # 🔑 Load env variables
 load_dotenv()
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("YOUR_API_KEY")
 
 # ❗ Check if API key loaded
 if not API_KEY:
-    raise ValueError("GEMINI_API_KEY not found. Check your .env file")
+    raise ValueError("YOUR_API_KEY not found. Check your .env file")
 
 # 🌐 Gemini API URL
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
