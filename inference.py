@@ -1,20 +1,30 @@
+# inference.py
+
 import os
-import requests
 import json
 from dotenv import load_dotenv
+from openai import OpenAI
 from env.environment import ResumeEnv
 
-# 🔑 Load env variables
+# -------------------------
+# Load environment variables
+# -------------------------
 load_dotenv()
 
-API_KEY = os.getenv("YOUR_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
 
-# ❗ Check if API key loaded
-if not API_KEY:
-    raise ValueError("YOUR_API_KEY not found. Check your .env file")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY not found. Add it in your .env file.")
 
-# 🌐 Gemini API URL
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
+# -------------------------
+# Init OpenAI Client
+# -------------------------
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# -------------------------
+# Init Environment
+# -------------------------
 env = ResumeEnv()
 
 print("[START]")
@@ -25,14 +35,19 @@ print("[STEP]")
 print("Job:", obs.job_description)
 print("Resume:", obs.resume)
 
-# 🧾 Prompt
+# -------------------------
+# Prompt
+# -------------------------
 prompt = f"""
 You are an HR AI.
 
-Job: {obs.job_description}
-Resume: {obs.resume}
+Job Description:
+{obs.job_description}
 
-Strictly return ONLY valid JSON (no extra text):
+Resume:
+{obs.resume}
+
+Return ONLY valid JSON in this format:
 {{
   "decision": "shortlist or reject",
   "score": 0 to 1,
@@ -40,31 +55,26 @@ Strictly return ONLY valid JSON (no extra text):
 }}
 """
 
-payload = {
-    "contents": [
-        {
-            "parts": [{"text": prompt}]
-        }
-    ]
-}
+# -------------------------
+# Call OpenAI
+# -------------------------
+response = client.chat.completions.create(
+    model=MODEL_NAME,
+    messages=[
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0
+)
 
-headers = {
-    "Content-Type": "application/json"
-}
+raw_output = response.choices[0].message.content
 
-response = requests.post(url, headers=headers, json=payload)
-result = response.json()
+print("AI RAW OUTPUT:", raw_output)
 
-print("FULL API RESPONSE:", result)
-
-# 🧠 Extract AI text safely
-output_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-
-print("AI RAW OUTPUT:", output_text)
-
-# 🔥 JSON Parsing
+# -------------------------
+# Parse JSON safely
+# -------------------------
 try:
-    cleaned = output_text.replace("```json", "").replace("```", "").strip()
+    cleaned = raw_output.replace("```json", "").replace("```", "").strip()
     parsed = json.loads(cleaned)
 
     action = {
@@ -82,7 +92,9 @@ except Exception as e:
         "reason": "Fallback due to parsing error"
     }
 
-# ✅ Environment step
+# -------------------------
+# Environment Step
+# -------------------------
 obs, reward, done, _ = env.step(action)
 
 print("[END]")
