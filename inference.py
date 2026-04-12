@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from dotenv import load_dotenv
 from openai import OpenAI
 from env.environment import ResumeEnv
@@ -9,22 +10,25 @@ from env.environment import ResumeEnv
 # -------------------------
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")  # no default
 
-# Toggle mode based on API key
-USE_REAL_API = bool(OPENAI_API_KEY)
+# Toggle mode
+USE_REAL_API = bool(HF_TOKEN)
 
 print("Mode:", "REAL API" if USE_REAL_API else "MOCK")
 
 # -------------------------
-# Init OpenAI Client (only if key exists)
+# Init OpenAI Client (FIXED)
 # -------------------------
-if USE_REAL_API:
-    client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(
+    base_url=API_BASE_URL,
+    api_key=HF_TOKEN or "dummy-key"
+)
 
 # -------------------------
-# LLM Call Function (REAL + MOCK)
+# LLM Call Function
 # -------------------------
 def call_llm(prompt):
     if USE_REAL_API:
@@ -36,11 +40,8 @@ def call_llm(prompt):
             temperature=0
         )
         return response.choices[0].message.content
-
     else:
         print("[MOCK MODE ENABLED]")
-
-        # Simulated realistic response
         return json.dumps({
             "decision": "shortlist",
             "score": 0.78,
@@ -69,6 +70,7 @@ Job Description:
 {obs.job_description}
 Resume:
 {obs.resume}
+
 Return ONLY valid JSON in this format:
 {{
   "decision": "shortlist or reject",
@@ -78,7 +80,7 @@ Return ONLY valid JSON in this format:
 """
 
 # -------------------------
-# Call LLM (REAL or MOCK)
+# Call LLM
 # -------------------------
 raw_output = call_llm(prompt)
 
