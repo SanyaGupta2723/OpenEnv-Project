@@ -34,6 +34,7 @@ obs = env.reset()
 print("[STEP]")
 print("Job:", obs.job_description)
 print("Resume:", obs.resume)
+print("Loaded Key:", os.getenv("OPENAI_API_KEY"))
 
 # -------------------------
 # Prompt
