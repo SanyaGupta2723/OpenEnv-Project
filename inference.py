@@ -1,5 +1,3 @@
-# inference.py
-
 import os
 import json
 from dotenv import load_dotenv
@@ -14,13 +12,40 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
 
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY not found. Add it in your .env file.")
+# Toggle mode based on API key
+USE_REAL_API = bool(OPENAI_API_KEY)
+
+print("Mode:", "REAL API" if USE_REAL_API else "MOCK")
 
 # -------------------------
-# Init OpenAI Client
+# Init OpenAI Client (only if key exists)
 # -------------------------
-client = OpenAI(api_key=OPENAI_API_KEY)
+if USE_REAL_API:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+
+# -------------------------
+# LLM Call Function (REAL + MOCK)
+# -------------------------
+def call_llm(prompt):
+    if USE_REAL_API:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0
+        )
+        return response.choices[0].message.content
+
+    else:
+        print("[MOCK MODE ENABLED]")
+
+        # Simulated realistic response
+        return json.dumps({
+            "decision": "shortlist",
+            "score": 0.78,
+            "reason": "Candidate has relevant skills and experience matching the job description."
+        })
 
 # -------------------------
 # Init Environment
@@ -34,20 +59,16 @@ obs = env.reset()
 print("[STEP]")
 print("Job:", obs.job_description)
 print("Resume:", obs.resume)
-print("Loaded Key:", os.getenv("OPENAI_API_KEY"))
 
 # -------------------------
 # Prompt
 # -------------------------
 prompt = f"""
 You are an HR AI.
-
 Job Description:
 {obs.job_description}
-
 Resume:
 {obs.resume}
-
 Return ONLY valid JSON in this format:
 {{
   "decision": "shortlist or reject",
@@ -57,17 +78,9 @@ Return ONLY valid JSON in this format:
 """
 
 # -------------------------
-# Call OpenAI
+# Call LLM (REAL or MOCK)
 # -------------------------
-response = client.chat.completions.create(
-    model=MODEL_NAME,
-    messages=[
-        {"role": "user", "content": prompt}
-    ],
-    temperature=0
-)
-
-raw_output = response.choices[0].message.content
+raw_output = call_llm(prompt)
 
 print("AI RAW OUTPUT:", raw_output)
 
