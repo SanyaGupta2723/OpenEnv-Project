@@ -206,7 +206,6 @@ This project is deployed using **Hugging Face Spaces (Docker)**
 ## 👩‍💻 Author
 
 **Sanya Gupta** 🚀
-AI & ML Enthusiast
 
 ---
 
